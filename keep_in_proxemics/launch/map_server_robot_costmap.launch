@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="map_server" type="map_server" name="map_server_robot_template" args="$(find keep_in_proxemics)/maps/local.yaml" output="screen">
+    <param name="topic" value="/keep_in_proxemics/robot_costmap" />
+  </node>
+</launch>

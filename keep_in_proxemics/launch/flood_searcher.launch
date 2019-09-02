@@ -1,0 +1,6 @@
+<launch>
+  <include file="$(find keep_in_proxemics)/launch/map_server_robot_costmap.launch" />
+  <node pkg="keep_in_proxemics" type="flood_searcher_node" name="flood_searcher_node" output="screen">
+    <param name="search_radius_" value="1.0"/>
+  </node>
+</launch>

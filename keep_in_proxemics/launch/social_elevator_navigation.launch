@@ -1,0 +1,8 @@
+<launch>
+  <include file="$(find gb_navigation)/launch/navigation.launch" />
+  <!--<include file="$(find keep_in_proxemics)/launch/flood_fill.launch" />-->
+  <include file="$(find face_detector)/launch/face_detector.rgbd.launch" />
+  <node pkg="keep_in_proxemics" type="people_remapper_node" name="people_remapper_node" output="screen">
+    <param name="frame_id" value="odom" />
+  </node>
+</launch>
