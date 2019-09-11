@@ -1,0 +1,16 @@
+<launch>
+  <arg name="action_duration"		default="0.0" />
+	<arg name="action_probability"	default="1.0" />
+	<arg name="knowledge_base"		default="rosplan_knowledge_base" />
+  <arg name="action_dispatch_topic"	default="/rosplan_plan_dispatcher/action_dispatch" />
+	<arg name="action_feedback_topic"	default="/rosplan_plan_dispatcher/action_feedback" />
+
+  <node name="rosplan_interface_social_move_to" pkg="social_navigation" type="rp_social_move" respawn="false" output="screen">
+    <param name="knowledge_base"		value="$(arg knowledge_base)" />
+    <param name="pddl_action_name" value="social_move" />
+    <param name="action_duration"		value="$(arg action_duration)" />
+    <param name="action_probability"	value="$(arg action_probability)" />
+    <param name="action_dispatch_topic" value="$(arg action_dispatch_topic)"/>
+    <param name="action_feedback_topic" value="$(arg action_feedback_topic)" />
+  </node>
+</launch>

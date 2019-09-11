@@ -185,7 +185,6 @@ class MapServer
       meta_data_message_ = map_resp_.map.info;
       ROS_INFO("Publishing in [%s]",topic.c_str());
       service = n.advertiseService("static_map", &MapServer::mapCallback, this);
-      //pub = n.advertise<nav_msgs::MapMetaData>("map_metadata", 1,
 
       // Latched publisher for metadata
       metadata_pub= n.advertise<nav_msgs::MapMetaData>("map_metadata", 1, true);
