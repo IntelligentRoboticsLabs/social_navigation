@@ -101,20 +101,6 @@ protected:
   void timeoutCB(const ros::TimerEvent&);
 
 private:
-  void updateTrackedPeopleList();
-  void pointTransformer(
-    std::string frame_in,
-    std::string frame_out,
-    tf2::Vector3 p_in,
-    tf2::Vector3& p_out
-  );
-  void updateStandingPeople(tf2::Vector3 p_map, tf2::Vector3 p_bf);
-  void updateDynamicPeople(tf2::Vector3 p_map, tf2::Vector3 p_bf);
-  void addNewPerson(tf2::Vector3 p_map, tf2::Vector3 p_bf);
-  void list_print();
-  bool checkEncounter(tf2::Vector3& output_pos);
-  void restartUpdatedPeople();
-  float pointDistance(tf2::Vector3 p1, tf2::Vector3 p2);
 
   ros::NodeHandle nh_;
   enum StateType

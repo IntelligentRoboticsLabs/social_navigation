@@ -55,9 +55,9 @@ RP_social_move::RP_social_move(ros::NodeHandle& nh) :
   interaction_achieved = false;
   gretting = false;
   nh_.param<float>("distance_interaction_threshold", distance_th_, 2.0);
-  timer_interaction	=	nh_.createTimer(ros::Duration(5),&RP_social_move::timeoutCB,this,true);
+  timer_interaction	=	nh_.createTimer(ros::Duration(20),&RP_social_move::timeoutCB,this,true);
   timer_interaction.stop();
-  robot_id_ = "leia";
+  robot_id_ = "sonny";
 
   darknet_ros_3d::ObjectConfiguration people_conf;
 
@@ -124,269 +124,86 @@ void RP_social_move::activateCode()
   //goal.target_pose.header.stamp = ros::Time::now();
   //action_client_.sendGoal(goal);
   state_ = INIT;
+  graph_.add_edge(robot_id_, "ask: hello.action", robot_id_);
 
-  obj_listener_.reset();
-  obj_listener_.set_working_frame("base_footprint");
-  obj_listener_.set_active();
+  //obj_listener_.reset();
+  //obj_listener_.set_working_frame("base_footprint");
+  //obj_listener_.set_active();
 }
 
 void RP_social_move::deActivateCode()
 {
   action_client_.cancelAllGoals();
-  obj_listener_.set_inactive();
+  //obj_listener_.set_inactive();
 }
 
 void RP_social_move::timeoutCB(const ros::TimerEvent&)
 {
+  auto interest_edges = graph_.get_string_edges_from_node_by_data(robot_id_, "ask: bye.action");
+  if (!interest_edges.empty())
+    graph_.remove_edge(interest_edges[0]);
+
   state_ = INIT;
 }
 
-
-void RP_social_move::pointTransformer(
-  std::string frame_in,
-  std::string frame_out,
-  tf2::Vector3 p_in,
-  tf2::Vector3& p_out
-)
-{
-  geometry_msgs::TransformStamped any2bf_msg;
-  tf2::Transform any2bf;
-  std::string error;
-  if (tfBuffer_.canTransform(frame_in, frame_out,
-    ros::Time(0), ros::Duration(0.1), &error))
-    any2bf_msg = tfBuffer_.lookupTransform(frame_in, frame_out, ros::Time(0));
-  else
-  {
-    ROS_ERROR("Can't transform %s", error.c_str());
-    return;
-  }
-
-  tf2::Stamped<tf2::Transform> aux;
-  tf2::convert(any2bf_msg, aux);
-  any2bf = aux;
-  p_out = any2bf.inverse() * p_in;
-}
-
-float RP_social_move::pointDistance(tf2::Vector3 p1, tf2::Vector3 p2)
-{
-  return sqrt(pow((p2.getX() - p1.getX()),2) +
-    pow((p2.getY() - p1.getY()),2) +
-    pow((p2.getZ() - p1.getZ()),2));
-}
-
-void RP_social_move::updateStandingPeople(tf2::Vector3 p_map, tf2::Vector3 p_bf)
-{
-  for (auto it = people_tracked_list_.begin();
-    it != people_tracked_list_.end();
-    ++it)
-  {
-    if (pointDistance(it->last_position_map, p_map) <= 0.3)
-    {
-      ROS_INFO("[updateStandingPeople] distance %f", pointDistance(it->last_position_map, p_map));
-      ROS_INFO("last %f %f",it->last_position_map.getX(), it->last_position_map.getY());
-      ROS_INFO("current %f %f",p_map.getX(), p_map.getY());
-
-      it->is_moving = false;
-      it->last_position_map = p_map;
-      it->last_position_bf = p_bf;
-      it->distance_to_robot[0] = pointDistance(tf2::Vector3(0,0,0), p_bf);
-      it->stamp = ros::Time::now();
-      it->updated = true;
-    }
-  }
-}
-
-void RP_social_move::updateDynamicPeople(tf2::Vector3 p_map, tf2::Vector3 p_bf)
-{
-  int max_it = 0;
-  for (auto it = people_tracked_list_.begin();
-    it != people_tracked_list_.end();
-    ++it)
-  {
-    //ROS_INFO("%f", pointDistance(it->last_position_map, p_map));
-    //ROS_INFO("%i", (ros::Time::now() - it->stamp).toSec);
-
-    if (it->updated == false &&
-      pointDistance(it->last_position_map, p_map) <= 0.7 /*(ros::Time::now() - it->stamp)*/ &&
-      max_it < 1)
-    {
-
-      ROS_INFO("[updateDynamicPeople] distance %f", pointDistance(it->last_position_map, p_map));
-      ROS_INFO("last %f %f",it->last_position_map.getX(), it->last_position_map.getY());
-      ROS_INFO("current %f %f",p_map.getX(), p_map.getY());
-
-      it->is_moving = true;
-      ROS_INFO("-- updateDynamicPeople --  IS MOVING");
-      it->last_position_map = p_map;
-      it->last_position_bf = p_bf;
-      it->distance_to_robot.push_back(pointDistance(tf2::Vector3(0,0,0), p_bf));
-      it->stamp = ros::Time::now();
-      it->updated = true;
-      ++max_it;
-    }
-  }
-}
-
-void RP_social_move::addNewPerson(tf2::Vector3 p_map, tf2::Vector3 p_bf)
-{
-  bool target_closer = false;
-  for (auto it = people_tracked_list_.begin();
-    it != people_tracked_list_.end();
-    ++it)
-  {
-    if (pointDistance(it->last_position_map, p_map) <= 0.3)
-      target_closer = true;
-  }
-
-  if (!target_closer &&
-      people_tracked_list_.size() < 2 &&
-      pointDistance(tf2::Vector3 (0,0,0), p_bf) < 4.0)
-  {
-    SimpleTrackedPerson p;
-    p.is_moving = false;
-    p.distance_to_robot.push_back(pointDistance(tf2::Vector3 (0,0,0), p_bf));
-    p.last_position_map = p_map;
-    p.last_position_bf = p_bf;
-    p.stamp = ros::Time::now();
-    p.updated = false;
-
-    people_tracked_list_.push_back(p);
-  }
-}
-
-void RP_social_move::list_print()
-{
-  ROS_INFO("----------- list print --------------");
-  for (auto it = people_tracked_list_.begin();
-    it != people_tracked_list_.end();
-    ++it)
-  {
-    ROS_INFO("P:");
-    ROS_INFO("is_moving [%i] last_position_map [%f %f]", it->is_moving, it->last_position_map.getX(), it->last_position_map.getY());
-  }
-}
-
-void RP_social_move::restartUpdatedPeople()
-{
-  for (auto it = people_tracked_list_.begin();
-    it != people_tracked_list_.end();
-    ++it)
-  {
-    /*if (ros::Time::now() - it->stamp >= ros::Duration(2))
-    {
-      people_tracked_list_.erase(it);
-    }
-    else*/
-    it->updated = false;
-  }
-}
-
-
-
-bool RP_social_move::checkEncounter(tf2::Vector3& output_pos)
-{
-  for (auto it = people_tracked_list_.begin();
-    it != people_tracked_list_.end();
-    ++it)
-  {
-    ROS_WARN("[checkEncounter] %i", it->is_moving);
-    ROS_WARN("[checkEncounter] %f", it->distance_to_robot.back());
-    if (it->is_moving && it->distance_to_robot.back() < 2.5)
-    {
-      output_pos.setX(it->last_position_bf.getX());
-      output_pos.setY(it->last_position_bf.getY());
-      return true;
-    }
-  }
-
-  return false;
-}
-
-void RP_social_move::updateTrackedPeopleList()
-{
-  for (const auto& object : obj_listener_.get_objects())
-  {
-    if (object.class_id == "person")
-    {
-      /*tf2::Vector3 central_point, central_point_2map, central_point_2bf;
-      central_point.setX((bb.xmax + bb.xmin)/2.0);
-      central_point.setY((bb.ymax + bb.ymin)/2.0);
-      central_point.setZ((bb.zmax + bb.zmin)/2.0);
-
-      pointTransformer(
-        objects_msg_.header.frame_id,
-        "map",
-        central_point,
-        central_point_2map);
-      pointTransformer(
-        objects_msg_.header.frame_id,
-        "base_footprint",
-        central_point,
-        central_point_2bf);
-      updateStandingPeople(central_point_2map, central_point_2bf);
-      updateDynamicPeople(central_point_2map, central_point_2bf);
-      addNewPerson(central_point_2map, central_point_2bf);
-      list_print();*/
-    }
-  }
-}
-
-
 void RP_social_move::step()
 {
-  updateTrackedPeopleList();
-  tf2::Vector3 encounter_situation_pos(0,0,0);
-  bool encounter_situation = checkEncounter(encounter_situation_pos);
+  //updateTrackedPeopleList();
+  //tf2::Vector3 encounter_situation_pos(0,0,0);
+  //bool encounter_situation = checkEncounter(encounter_situation_pos);
   switch(state_){
     case INIT:
       ROS_INFO("[social_move] INIT state");
       goal.target_pose.header.stamp = ros::Time::now();
       action_client_.sendGoal(goal);
-      graph_.add_edge(robot_id_, "want_see", robot_id_);
       state_ = NAVIGATING;
       break;
     case NAVIGATING:
-      ROS_INFO("[social_move] NAVIGATING state");
-      if(encounter_situation && !interaction_achieved)
       {
-        //GIRARSE HACIA LA PERSONA.
-        ROS_ERROR("----------------- ENCOUNTER SITUATION -------------");
-        action_client_.cancelAllGoals();
-        interaction_achieved = true;
-        state_ = INTERACTING;
+        auto interest_edges = graph_.get_string_edges_from_node_by_data(robot_id_, "response: hello");
+        if (!interest_edges.empty())
+        {
+          graph_.add_edge(robot_id_, "ask: bye.action", robot_id_);
+          ROS_ERROR("----------------- ENCOUNTER SITUATION -------------");
+          action_client_.cancelAllGoals();
+          graph_.remove_edge(interest_edges[0]);
+          state_ = INTERACTING;
+        }
+        break;
       }
-      break;
     case INTERACTING:
-      ROS_INFO("[social_move] INTERACTING state");
-      if (!gretting)
       {
-        graph_.add_edge(robot_id_, "say: Hi! I'm Sonny and I'm go to the XXX floor.", robot_id_);
-        gretting = true;
+        ROS_INFO("[social_move] INTERACTING state");
+        if (!gretting)
+        {
+          graph_.add_edge(robot_id_, "say: Hi! I'm Sonny and I'm go to the XXX floor.", robot_id_);
+          gretting = true;
+          timer_interaction.start();
+        }
+        auto interest_edges = graph_.get_string_edges_from_node_by_data(robot_id_, "response: bye");
+        if (!interest_edges.empty())
+          state_ = INIT;
+        break;
       }
-      timer_interaction.start();
-      break;
   }
-  restartUpdatedPeople();
 
-  //bool finished_before_timeout = action_client_.waitForResult(ros::Duration(0.5));
-  //actionlib::SimpleClientGoalState state = action_client_.getState();
-  //ROS_INFO("KCL: (%s) action state: %s", params.name.c_str(), state.toString().c_str());
-  //if (finished_before_timeout)
-  //{
-  //  actionlib::SimpleClientGoalState state = action_client_.getState();
-  //  ROS_INFO("KCL: (%s) action finished: %s", params.name.c_str(), state.toString().c_str());
-
-  //  if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
-  //  {
-  //    setSuccess();
-  //    return;
-  //  }
-  //  else
-  //  {
-  //    setFail();
-  //    return;
-  //  }
-  //}
+  bool finished_before_timeout = action_client_.waitForResult(ros::Duration(0.5));
+  actionlib::SimpleClientGoalState state = action_client_.getState();
+  ROS_INFO("KCL: (%s) action state: %s", params.name.c_str(), state.toString().c_str());
+  if (finished_before_timeout) {
+    actionlib::SimpleClientGoalState state = action_client_.getState();
+    ROS_INFO("KCL: (%s) action finished: %s", params.name.c_str(), state.toString().c_str());
+    if(state == actionlib::SimpleClientGoalState::SUCCEEDED)
+    {
+      setSuccess();
+      return;
+    }
+    else if(state == actionlib::SimpleClientGoalState::ABORTED)
+    {
+      setFail();
+      return;
+    }
+  }
 }
 
 int main(int argc, char** argv)
