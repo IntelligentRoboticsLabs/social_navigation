@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="map_server" type="map_server" name="map_server_robot_template" args="$(find social_navigation)/maps/local.yaml" output="screen">
+    <param name="topic" value="/social_navigation/robot_costmap" />
+  </node>
+</launch>

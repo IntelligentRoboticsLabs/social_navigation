@@ -23,6 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
   darknet_ros_3d
   roslint
 )
+find_package(Boost REQUIRED COMPONENTS system)
 
 
 catkin_package(
@@ -33,21 +34,37 @@ catkin_package(
 )
 
 include_directories(
-# 	  include
-    ${catkin_INCLUDE_DIRS}
+# include
+  ${Boost_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
 )
 
 set(ROSLINT_CPP_OPTS "--filter=-build/header_guard,-runtime/references")
 roslint_cpp()
 
+# Utils
+
+add_executable(laser_fake_creator_node src/utils/laser_fake_creator_node.cpp)
+target_link_libraries(laser_fake_creator_node ${catkin_LIBRARIES})
+
+add_executable(people_remapper_node src/utils/people_remapper_node.cpp)
+target_link_libraries(people_remapper_node ${catkin_LIBRARIES})
+
+# Actions
+
 add_executable(rp_social_move src/actions/RP_social_move.cpp)
 add_dependencies(rp_social_move ${catkin_EXPORTED_TARGETS} )
 target_link_libraries(rp_social_move ${catkin_LIBRARIES} )
+
+add_executable(rp_proxemic_move src/actions/RP_proxemic_move.cpp)
+add_dependencies(rp_proxemic_move ${catkin_EXPORTED_TARGETS} )
+target_link_libraries(rp_proxemic_move ${catkin_LIBRARIES} )
 
 
 ## Mark executables and/or libraries for installation
 install(TARGETS
     rp_social_move
+    rp_proxemic_move
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

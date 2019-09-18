@@ -13,3 +13,14 @@
     (at end(social_move_pred ?r ?to))
   )
 )
+
+(:durative-action proxemic_move
+  :parameters (?r - robot ?robot_goal ?people_goal - waypoint ?room - room)
+  :duration ( = ?duration 10)
+  :condition (and
+
+  )
+  :effect (and
+    (at end(proxemic_moving ?r ?robot_goal ?people_goal))
+  )
+)

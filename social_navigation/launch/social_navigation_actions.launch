@@ -13,4 +13,19 @@
     <param name="action_dispatch_topic" value="$(arg action_dispatch_topic)"/>
     <param name="action_feedback_topic" value="$(arg action_feedback_topic)" />
   </node>
+
+  <include file="$(find social_navigation)/launch/map_server_robot_costmap.launch" />
+
+  <node pkg="social_navigation" type="people_remapper_node" name="people_remapper_node" output="screen">
+    <param name="frame_id" value="map" />
+  </node>
+
+  <node name="rosplan_interface_proxemic_move" pkg="social_navigation" type="rp_proxemic_move" respawn="false" output="screen">
+    <param name="knowledge_base"		value="$(arg knowledge_base)" />
+    <param name="pddl_action_name" value="proxemic_move" />
+    <param name="action_duration"		value="$(arg action_duration)" />
+    <param name="action_probability"	value="$(arg action_probability)" />
+    <param name="action_dispatch_topic" value="$(arg action_dispatch_topic)"/>
+    <param name="action_feedback_topic" value="$(arg action_feedback_topic)" />
+  </node>
 </launch>

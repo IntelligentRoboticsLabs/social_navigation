@@ -176,7 +176,13 @@ void RP_social_move::step()
         ROS_INFO("[social_move] INTERACTING state");
         if (!gretting)
         {
-          graph_.add_edge(robot_id_, "say: Hi! I'm Sonny and I'm go to the XXX floor.", robot_id_);
+          std::string target_floor;
+          auto interest_edges = graph_.get_string_edges_from_node_by_data(robot_id_, "target_floor");
+          for (auto edge : interest_edges)
+          {
+            target_floor = edge.get_target();
+          }
+          graph_.add_edge(robot_id_, "say: Hi! I'm Sonny and I have to go to the " + target_floor + " floor.", robot_id_);
           gretting = true;
           timer_interaction.start();
         }
