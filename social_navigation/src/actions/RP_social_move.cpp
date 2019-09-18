@@ -78,6 +78,8 @@ RP_social_move::RP_social_move(ros::NodeHandle& nh) :
 
   obj_listener_.add_class("person", people_conf);
 
+  graph_.add_edge("sonny", "want_see", "sonny");
+
 }
 
 void RP_social_move::activateCode()
@@ -126,13 +128,15 @@ void RP_social_move::activateCode()
   state_ = INIT;
   graph_.add_edge(robot_id_, "ask: hello.action", robot_id_);
 
-  //obj_listener_.reset();
-  //obj_listener_.set_working_frame("base_footprint");
-  //obj_listener_.set_active();
+  obj_listener_.reset();
+  obj_listener_.set_working_frame("sonny");
+  obj_listener_.set_active();
 }
 
 void RP_social_move::deActivateCode()
 {
+  graph_.remove_edge("sonny", "want_see", "sonny");
+  obj_listener_.set_inactive();
   action_client_.cancelAllGoals();
   //obj_listener_.set_inactive();
 }
@@ -161,7 +165,7 @@ void RP_social_move::step()
     case NAVIGATING:
       {
         auto interest_edges = graph_.get_string_edges_from_node_by_data(robot_id_, "response: hello");
-        if (!interest_edges.empty())
+        if (!interest_edges.empty() || !obj_listener_.get_objects().empty())
         {
           graph_.add_edge(robot_id_, "ask: bye.action", robot_id_);
           ROS_ERROR("----------------- ENCOUNTER SITUATION -------------");
@@ -201,11 +205,15 @@ void RP_social_move::step()
     ROS_INFO("KCL: (%s) action finished: %s", params.name.c_str(), state.toString().c_str());
     if(state == actionlib::SimpleClientGoalState::SUCCEEDED)
     {
+      graph_.remove_edge("sonny", "want_see", "sonny");
+      obj_listener_.set_inactive();
       setSuccess();
       return;
     }
     else if(state == actionlib::SimpleClientGoalState::ABORTED)
     {
+      graph_.remove_edge("sonny", "want_see", "sonny");
+      obj_listener_.set_inactive();
       setFail();
       return;
     }

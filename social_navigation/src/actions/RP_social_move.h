@@ -75,10 +75,10 @@ struct SimpleTrackedPerson
 #define CHECK_PERSON_MIN_PROBABILITY   0.4
 
 
-#define CHECK_PERSON_MIN_X   -1.5
-#define CHECK_PERSON_MAX_X   1.5
-#define CHECK_PERSON_MIN_Y   -1.5
-#define CHECK_PERSON_MAX_Y   1.5
+#define CHECK_PERSON_MIN_X   0.5
+#define CHECK_PERSON_MAX_X   1.2
+#define CHECK_PERSON_MIN_Y   -1.0
+#define CHECK_PERSON_MAX_Y   1.0
 #define CHECK_PERSON_MIN_Z   0.0
 #define CHECK_PERSON_MAX_Z   2.0
 #define CHECK_PERSON_MIN_SIZE_X   0.15
