@@ -75,11 +75,9 @@ RP_social_move::RP_social_move(ros::NodeHandle& nh) :
   people_conf.max_size_y = CHECK_PERSON_MAX_SIZE_Y;
   people_conf.max_size_z = CHECK_PERSON_MAX_SIZE_Z;
   people_conf.dynamic = true;
+  people_conf.max_seconds = ros::Duration(3.0);
 
   obj_listener_.add_class("person", people_conf);
-
-  graph_.add_edge("sonny", "want_see", "sonny");
-
 }
 
 void RP_social_move::activateCode()
@@ -88,6 +86,8 @@ void RP_social_move::activateCode()
   {
     ROS_INFO("[social_move_to] Waiting for the move_base action server to come up");
   }
+
+  graph_.add_edge("sonny", "want_see", "sonny");
 
   std::string wpID;
   bool found = false;
@@ -170,7 +170,8 @@ void RP_social_move::step()
           graph_.add_edge(robot_id_, "ask: bye.action", robot_id_);
           ROS_ERROR("----------------- ENCOUNTER SITUATION -------------");
           action_client_.cancelAllGoals();
-          graph_.remove_edge(interest_edges[0]);
+          if (!interest_edges.empty())
+            graph_.remove_edge(interest_edges[0]);
           state_ = INTERACTING;
         }
         break;
