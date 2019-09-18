@@ -75,6 +75,7 @@ RP_social_move::RP_social_move(ros::NodeHandle& nh) :
   people_conf.max_size_y = CHECK_PERSON_MAX_SIZE_Y;
   people_conf.max_size_z = CHECK_PERSON_MAX_SIZE_Z;
   people_conf.dynamic = true;
+  people_conf.max_seconds = ros::Duration(3.0);
 
   obj_listener_.add_class("person", people_conf);
 
