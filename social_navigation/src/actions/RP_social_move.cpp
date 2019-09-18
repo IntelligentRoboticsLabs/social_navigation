@@ -128,6 +128,8 @@ void RP_social_move::activateCode()
   state_ = INIT;
   graph_.add_edge(robot_id_, "ask: hello.action", robot_id_);
 
+
+  graph_.add_edge("sonny", "want_see", "sonny");
   obj_listener_.reset();
   obj_listener_.set_working_frame("sonny");
   obj_listener_.set_active();
