@@ -78,9 +78,6 @@ RP_social_move::RP_social_move(ros::NodeHandle& nh) :
   people_conf.max_seconds = ros::Duration(3.0);
 
   obj_listener_.add_class("person", people_conf);
-
-  graph_.add_edge("sonny", "want_see", "sonny");
-
 }
 
 void RP_social_move::activateCode()
@@ -129,6 +126,8 @@ void RP_social_move::activateCode()
   state_ = INIT;
   graph_.add_edge(robot_id_, "ask: hello.action", robot_id_);
 
+
+  graph_.add_edge("sonny", "want_see", "sonny");
   obj_listener_.reset();
   obj_listener_.set_working_frame("sonny");
   obj_listener_.set_active();
