@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   costmap_2d
   dynamic_reconfigure
   people_msgs
+  social_navigation_layers_msgs
   pluginlib
   roscpp
 )

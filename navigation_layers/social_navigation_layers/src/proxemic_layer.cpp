@@ -33,7 +33,18 @@ namespace social_navigation_layers
         server_ = new dynamic_reconfigure::Server<ProxemicLayerConfig>(nh);
         f_ = boost::bind(&ProxemicLayer::configure, this, _1, _2);
         server_->setCallback(f_);
+        st_people_goal_ = nh.advertiseService("/proxemic_layer/stimated_people_goal", &ProxemicLayer::stimatedPeopleGoalSrv, this);
     }
+
+    bool ProxemicLayer::stimatedPeopleGoalSrv(
+      social_navigation_layers_msgs::StimatedPeopleGoal::Request  &req,
+      social_navigation_layers_msgs::StimatedPeopleGoal::Response &res)
+    {
+      exit_px_ = req.target.x;
+      exit_py_ = req.target.y;
+      return true;
+    }
+
 
     void ProxemicLayer::updateBoundsFromPeople(double* min_x, double* min_y, double* max_x, double* max_y)
     {

@@ -4,6 +4,9 @@
 #include <social_navigation_layers/social_layer.h>
 #include <dynamic_reconfigure/server.h>
 #include <social_navigation_layers/ProxemicLayerConfig.h>
+#include <social_navigation_layers_msgs/StimatedPeopleGoal.h>
+
+
 #include <navfn/navfn_ros.h>
 
 
@@ -45,13 +48,17 @@ namespace social_navigation_layers
       void resamplingPlan(
         std::vector<geometry_msgs::PoseStamped> &plan,
         std::vector<geometry_msgs::PoseStamped> &plan_sampled);
-
+      bool stimatedPeopleGoalSrv(
+        social_navigation_layers_msgs::StimatedPeopleGoal::Request  &req,
+        social_navigation_layers_msgs::StimatedPeopleGoal::Response &res);
       double cutoff_, amplitude_, covar_, factor_, exit_px_, exit_py_,
         exit_path_amplitude_;
       dynamic_reconfigure::Server<ProxemicLayerConfig>* server_;
       dynamic_reconfigure::Server<ProxemicLayerConfig>::CallbackType f_;
       std::vector<TrackedPerson> tracked_person_list_;
       costmap_2d::Costmap2D* costmap_to_plan;
+      ros::ServiceServer st_people_goal_;
+
 
   };
 };
