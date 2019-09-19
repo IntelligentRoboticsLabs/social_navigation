@@ -76,7 +76,7 @@ struct SimpleTrackedPerson
 
 
 #define CHECK_PERSON_MIN_X   0.5
-#define CHECK_PERSON_MAX_X   1.2
+#define CHECK_PERSON_MAX_X   2.0
 #define CHECK_PERSON_MIN_Y   -1.0
 #define CHECK_PERSON_MAX_Y   1.0
 #define CHECK_PERSON_MIN_Z   0.0
@@ -98,7 +98,7 @@ protected:
   void activateCode();
   void deActivateCode();
   void step();
-  void timeoutCB(const ros::TimerEvent&);
+  //void timeoutCB(const ros::TimerEvent&);
 
 private:
 
@@ -122,7 +122,9 @@ private:
   bool interaction_achieved, gretting;
   std::vector<SimpleTrackedPerson> people_tracked_list_;
   float distance_th_;
-  ros::Timer timer_interaction;
+  //ros::Timer timer_interactio;
+
+  ros::Time state_ts_;
 
   darknet_ros_3d::Darknet3DListener obj_listener_;
 };
