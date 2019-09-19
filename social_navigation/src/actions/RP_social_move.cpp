@@ -55,8 +55,8 @@ RP_social_move::RP_social_move(ros::NodeHandle& nh) :
   interaction_achieved = false;
   gretting = false;
   nh_.param<float>("distance_interaction_threshold", distance_th_, 2.0);
-  timer_interaction	=	nh_.createTimer(ros::Duration(20),&RP_social_move::timeoutCB,this,true);
-  timer_interaction.stop();
+  //timer_interaction	=	nh_.createTimer(ros::Duration(20),&RP_social_move::timeoutCB,this,true);
+  //timer_interaction.stop();
   robot_id_ = "sonny";
 
   darknet_ros_3d::ObjectConfiguration people_conf;
@@ -75,7 +75,7 @@ RP_social_move::RP_social_move(ros::NodeHandle& nh) :
   people_conf.max_size_y = CHECK_PERSON_MAX_SIZE_Y;
   people_conf.max_size_z = CHECK_PERSON_MAX_SIZE_Z;
   people_conf.dynamic = true;
-  people_conf.max_seconds = ros::Duration(3.0);
+  people_conf.max_seconds = ros::Duration(10.0);
 
   obj_listener_.add_class("person", people_conf);
 }
@@ -128,11 +128,11 @@ void RP_social_move::activateCode()
   state_ = INIT;
   graph_.add_edge(robot_id_, "ask: hello.action", robot_id_);
 
-
-  graph_.add_edge("sonny", "want_see", "sonny");
   obj_listener_.reset();
   obj_listener_.set_working_frame("sonny");
   obj_listener_.set_active();
+
+  state_ts_ = ros::Time::now();
 }
 
 void RP_social_move::deActivateCode()
@@ -143,14 +143,14 @@ void RP_social_move::deActivateCode()
   //obj_listener_.set_inactive();
 }
 
-void RP_social_move::timeoutCB(const ros::TimerEvent&)
+/*void RP_social_move::timeoutCB(const ros::TimerEvent&)
 {
   auto interest_edges = graph_.get_string_edges_from_node_by_data(robot_id_, "ask: bye.action");
   if (!interest_edges.empty())
     graph_.remove_edge(interest_edges[0]);
 
   state_ = INIT;
-}
+}*/
 
 void RP_social_move::step()
 {
@@ -162,11 +162,13 @@ void RP_social_move::step()
       ROS_INFO("[social_move] INIT state");
       goal.target_pose.header.stamp = ros::Time::now();
       action_client_.sendGoal(goal);
+      state_ts_ = ros::Time::now();
       state_ = NAVIGATING;
       break;
     case NAVIGATING:
       {
         auto interest_edges = graph_.get_string_edges_from_node_by_data(robot_id_, "response: hello");
+        obj_listener_.print();
         if (!interest_edges.empty() || !obj_listener_.get_objects().empty())
         {
           graph_.add_edge(robot_id_, "ask: bye.action", robot_id_);
@@ -174,6 +176,8 @@ void RP_social_move::step()
           action_client_.cancelAllGoals();
           if (!interest_edges.empty())
             graph_.remove_edge(interest_edges[0]);
+
+          state_ts_ = ros::Time::now();
           state_ = INTERACTING;
         }
         break;
@@ -191,11 +195,14 @@ void RP_social_move::step()
           }
           graph_.add_edge(robot_id_, "say: Hi! I'm Sonny and I have to go to the " + target_floor + " floor.", robot_id_);
           gretting = true;
-          timer_interaction.start();
+          //timer_interaction.start();
         }
         auto interest_edges = graph_.get_string_edges_from_node_by_data(robot_id_, "response: bye");
-        if (!interest_edges.empty())
+        if (!interest_edges.empty() || (ros::Time::now() - state_ts_).toSec() >= 10.0)
+        {
+          state_ts_ = ros::Time::now();
           state_ = INIT;
+        }
         break;
       }
   }
