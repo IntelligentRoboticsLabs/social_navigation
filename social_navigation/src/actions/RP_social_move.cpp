@@ -156,7 +156,6 @@ void RP_social_move::deActivateCode()
   state_ = INIT;
 }*/
 
-
 void RP_social_move::face_person()
 {
   geometry_msgs::Twist vel_msg;
