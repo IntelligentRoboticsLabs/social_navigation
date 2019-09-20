@@ -38,6 +38,8 @@
 
 #include "RP_social_move.h"
 
+#include <geometry_msgs/Twist.h>
+
 #include <string>
 #include <vector>
 
@@ -49,8 +51,10 @@ RP_social_move::RP_social_move(ros::NodeHandle& nh) :
   Action("social_move_to", 5.0),
   action_client_("/move_base", false),
   obj_listener_("base_footprint"),
-  tf_listener_(tfBuffer_)
+  tf_listener_(tfBuffer_),
+  interacted_(false)
 {
+  vel_pub_ = nh_.advertise<geometry_msgs::Twist>("/mobile_base_controller/cmd_vel", 10);
   srv_goal_ = nh_.serviceClient<topological_navigation_msgs::GetLocation>("/topological_navigation/get_location");
   interaction_achieved = false;
   gretting = false;
@@ -129,7 +133,7 @@ void RP_social_move::activateCode()
   graph_.add_edge(robot_id_, "ask: hello.action", robot_id_);
 
   obj_listener_.reset();
-  obj_listener_.set_working_frame("sonny");
+  obj_listener_.set_working_frame("main_room");
   obj_listener_.set_active();
 
   state_ts_ = ros::Time::now();
@@ -152,6 +156,46 @@ void RP_social_move::deActivateCode()
   state_ = INIT;
 }*/
 
+
+void RP_social_move::face_person()
+{
+  geometry_msgs::Twist vel_msg;
+  vel_msg.linear.x = 0;
+  vel_msg.linear.y = 0;
+  vel_msg.linear.z = 0;
+  vel_msg.angular.x = 0;
+  vel_msg.angular.y = 0;
+
+  if (obj_listener_.get_objects().empty())
+  {
+    ROS_INFO("\tFace Person NOT FOUND  ==> %lf", vel_msg.angular.z);
+    vel_msg.angular.z = 0.3;
+  } else
+  {
+    tf2::Vector3 pos = obj_listener_.get_objects()[0].central_point;
+    double person_angle = atan2(pos.y(), pos.x());
+
+    tf2::Stamped<tf2::Transform> r2door = graph_.get_tf("main_room", "sonny");
+    tf2::Matrix3x3 m(r2door.getRotation());
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+
+    double vel = person_angle - yaw;
+    ROS_INFO("Person = %lf\trobot = %lf  =====> %lf", person_angle, yaw, vel);
+
+    while (vel > M_PI) vel = vel - 2.0 * M_PI;
+    while (vel < -M_PI) vel = vel + 2.0 * M_PI;
+
+    vel_msg.angular.z = std::max(std::min(vel, 0.3), -0.3);
+    ROS_INFO("\tFace Person yaw = %lf  ==> %lf", vel, vel_msg.angular.z);
+  }
+
+
+  vel_pub_.publish(vel_msg);
+}
+
+
+
 void RP_social_move::step()
 {
   //updateTrackedPeopleList();
@@ -169,8 +213,17 @@ void RP_social_move::step()
       {
         auto interest_edges = graph_.get_string_edges_from_node_by_data(robot_id_, "response: hello");
         obj_listener_.print();
-        if (!interest_edges.empty() || !obj_listener_.get_objects().empty())
+
+        float dist = 1000.0; // Big value
+        if (!obj_listener_.get_objects().empty())
         {
+          auto pos = obj_listener_.get_objects()[0].central_point;
+          dist = sqrt(pos.x() * pos.x() + pos.y() * pos.y());
+        }
+
+        if (!interacted_ && (!interest_edges.empty() || dist < 2.0))
+        {
+          interacted_ = true;
           graph_.add_edge(robot_id_, "ask: bye.action", robot_id_);
           ROS_ERROR("----------------- ENCOUNTER SITUATION -------------");
           action_client_.cancelAllGoals();
@@ -180,10 +233,33 @@ void RP_social_move::step()
           state_ts_ = ros::Time::now();
           state_ = INTERACTING;
         }
+
+        bool finished_before_timeout = action_client_.waitForResult(ros::Duration(0.5));
+        actionlib::SimpleClientGoalState state = action_client_.getState();
+        ROS_INFO("KCL: (%s) action state: %s", params.name.c_str(), state.toString().c_str());
+        if (finished_before_timeout) {
+          actionlib::SimpleClientGoalState state = action_client_.getState();
+          ROS_INFO("KCL: (%s) action finished: %s", params.name.c_str(), state.toString().c_str());
+          if(state == actionlib::SimpleClientGoalState::SUCCEEDED)
+          {
+            graph_.remove_edge("sonny", "want_see", "sonny");
+            obj_listener_.set_inactive();
+            setSuccess();
+            return;
+          }
+          else if(state == actionlib::SimpleClientGoalState::ABORTED)
+          {
+            graph_.remove_edge("sonny", "want_see", "sonny");
+            obj_listener_.set_inactive();
+            setFail();
+            return;
+          }
+        }
         break;
       }
     case INTERACTING:
       {
+        face_person();
         ROS_INFO("[social_move] INTERACTING state");
         if (!gretting)
         {
@@ -197,8 +273,9 @@ void RP_social_move::step()
           gretting = true;
           //timer_interaction.start();
         }
+
         auto interest_edges = graph_.get_string_edges_from_node_by_data(robot_id_, "response: bye");
-        if (!interest_edges.empty() || (ros::Time::now() - state_ts_).toSec() >= 10.0)
+        if (!interest_edges.empty() || (ros::Time::now() - state_ts_).toSec() >= 20.0)
         {
           state_ts_ = ros::Time::now();
           state_ = INIT;
@@ -207,27 +284,6 @@ void RP_social_move::step()
       }
   }
 
-  bool finished_before_timeout = action_client_.waitForResult(ros::Duration(0.5));
-  actionlib::SimpleClientGoalState state = action_client_.getState();
-  ROS_INFO("KCL: (%s) action state: %s", params.name.c_str(), state.toString().c_str());
-  if (finished_before_timeout) {
-    actionlib::SimpleClientGoalState state = action_client_.getState();
-    ROS_INFO("KCL: (%s) action finished: %s", params.name.c_str(), state.toString().c_str());
-    if(state == actionlib::SimpleClientGoalState::SUCCEEDED)
-    {
-      graph_.remove_edge("sonny", "want_see", "sonny");
-      obj_listener_.set_inactive();
-      setSuccess();
-      return;
-    }
-    else if(state == actionlib::SimpleClientGoalState::ABORTED)
-    {
-      graph_.remove_edge("sonny", "want_see", "sonny");
-      obj_listener_.set_inactive();
-      setFail();
-      return;
-    }
-  }
 }
 
 int main(int argc, char** argv)

@@ -60,6 +60,7 @@
 
 #define DISTANCE_ROBOT_V_SIZE 3
 
+
 struct SimpleTrackedPerson
 {
   bool is_moving;
@@ -75,17 +76,17 @@ struct SimpleTrackedPerson
 #define CHECK_PERSON_MIN_PROBABILITY   0.4
 
 
-#define CHECK_PERSON_MIN_X   0.5
-#define CHECK_PERSON_MAX_X   2.0
-#define CHECK_PERSON_MIN_Y   -1.0
-#define CHECK_PERSON_MAX_Y   1.0
+#define CHECK_PERSON_MIN_X   -6.6
+#define CHECK_PERSON_MAX_X   0.0
+#define CHECK_PERSON_MIN_Y   0.0
+#define CHECK_PERSON_MAX_Y   6.6
 #define CHECK_PERSON_MIN_Z   0.0
 #define CHECK_PERSON_MAX_Z   2.0
 #define CHECK_PERSON_MIN_SIZE_X   0.15
 #define CHECK_PERSON_MIN_SIZE_Y   0.15
 #define CHECK_PERSON_MIN_SIZE_Z   0.45
-#define CHECK_PERSON_MAX_SIZE_X   1.0
-#define CHECK_PERSON_MAX_SIZE_Y   1.0
+#define CHECK_PERSON_MAX_SIZE_X   1.5
+#define CHECK_PERSON_MAX_SIZE_Y   1.5
 #define CHECK_PERSON_MAX_SIZE_Z   2.5
 
 
@@ -101,6 +102,7 @@ protected:
   //void timeoutCB(const ros::TimerEvent&);
 
 private:
+  void face_person();
 
   ros::NodeHandle nh_;
   enum StateType
@@ -127,6 +129,9 @@ private:
   ros::Time state_ts_;
 
   darknet_ros_3d::Darknet3DListener obj_listener_;
+
+  ros::Publisher vel_pub_;
+  bool interacted_;
 };
 
 #endif
