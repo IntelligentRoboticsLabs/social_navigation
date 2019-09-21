@@ -179,7 +179,7 @@ void RP_social_move::face_person()
     double roll, pitch, yaw;
     m.getRPY(roll, pitch, yaw);
 
-    double vel = person_angle - yaw;
+    double vel = (person_angle - yaw) + M_PI;
     ROS_INFO("Person = %lf\trobot = %lf  =====> %lf", person_angle, yaw, vel);
 
     while (vel > M_PI) vel = vel - 2.0 * M_PI;
